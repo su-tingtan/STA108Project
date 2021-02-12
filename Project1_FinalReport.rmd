@@ -1,0 +1,685 @@
+---
+title: "STA108 Project 1 Final Report"
+author: "Su-Ting Tan, Jennifer Ngo, Mary Bangloy"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(
+	error = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	echo = FALSE, # hide all R codes!!
+	fig.width=5, fig.height=4,#set figure size
+	fig.align='center',#center plot
+	options(knitr.kable.NA = ''), #do not print NA in knitr table
+	tidy = FALSE #add line breaks in R codes
+)
+```
+
+# Introduction
+The dataset that we will be analyzing in our project is demographic information on 440 selected counties in the United States. In the dataset, each county is coordinated with an identification number that represents a county. In the second line, there are the county names and state abbreviations that correspond to each county. There are a total of 14 variables included in the dataset ranging from total population, number of active physicians, total personal income, and more. The data were recorded between the years of 1990 and 1992. The purpose of this project is to compare how certain variables are related to each and how strong their relationships are. First, we will select a certain variable from our CDI data set and regress it against three other different variables. We will analyze the regression functions and how their slopes, intercepts, and MSE vary. Analysis of certain variables will be narrowed down within each region (NE, NC, S, and W) and we will compare the regression functions and MSE between them. Furthermore, we will analyze the $R^2$ of each predictor variable and see how much they play a role in the variability of other variables.We’ll even further analyze the confidence interval to estimate the $\beta_1$ so that we can compare the regression lines. Lastly, we will obtain a residual plot and normal probability plot for the predictor variables to determine whether the linear regression model is appropriate or not. 
+
+
+
+# Part I: Fitting regression models
+
+## Project 1.43
+(a) Regress the number of active physicians in turn on each of the three predictor variables. State the estimated regression functions.
+
+Let $Y$ be the number of active physicians in a CDI, $X_1$ be the Total Population: $$\widehat{Y}=-110.635+0.002795X_1$$
+
+Let $Y$ be the number of active physicians in a CDI, $X_2$ be the number of Hospital Beds: :$$\widehat{Y}=-95.932218+0.74312X_2$$
+
+Let $Y$ be the number of active physicians in a CDI, $X_3$ be the Total Personal Income :$$\widehat{Y}=-48.39485+013170X_3$$
+
+```{r, results="hide"}
+data1 = read.table("/Users/marybangloy/Desktop/STA 108/Project 1/CDI.txt")
+Y= data1[,8] # number of physicians
+X1=data1[,5] #total pop
+X2=data1[,9] #number of hospital bed
+X3=data1[,16]#total personal income
+n1=length(X1)
+n2=length(X2)
+n3=length(X3)
+
+fit1 = lm(Y~X1) 
+# summary(fit1) #Yhat=-110.635+0.002795X
+
+#regress for number of hospital bed
+fit2 = lm(Y~X2)
+# summary(fit2) #Yhat=-95.93218+0.74312X
+
+#regress for total personal income
+fit3 = lm(Y~X3)
+# summary(fit3) #Yhat=-48.39485+0.13170
+```
+
+......
+
+(b) Plot the three estimated regression functions and data on separate graphs. Does a linear regression relation appear to provide a good fit for each of the three predictor variables?
+
+Yes, the linear regression relation appears to provide a good fit for each of the three predictor variables. All the assumptions of the linear regression are satisfied. The points in all three graphs appear to be linear with each other which suggests that the X and Y variables have a relationship with each other. The data in the X and Y are also normally distributed with each other. 
+
+```{r}
+#Fitted line
+plot(X1,Y, xlab="Total Population",ylab="Number of Active Physicians ", main = "Fitted Regression Line")
+abline(fit1, col="blue")
+```
+
+```{r}
+#Fitted line
+plot(X2,Y, xlab="Number of Hospital Bed",ylab="Number of Active Physicians ", main = "Fitted Regression Line")
+abline(fit2, col="pink")
+```
+
+
+```{r}
+#Fitted line
+plot(X3,Y, xlab="Total Personal Income",ylab="Number of Active Physicians ", main = "Fitted Regression Line")
+abline(fit3, col="red")
+
+```
+
+c.) Calculate MSE for each of the the three predictor variables. Which predictor variable leads to the smallest variability around the fitted regression line?
+
+MSE for Total Population: 372203.50491
+
+MSE for Number of Hospital Bed: 31091.88354
+
+MSE for Total Personal Income : 324539.39367
+
+The predictor variable that leads to the smallest variability around the fitted regression line is Number of Hospital Beds. MSE is the average squared difference between the estimated values and the actual value. The predictor variable with the smallest MSE value demonstrates that it has the smallest variability.
+
+```{r}
+#total pop
+b1hat1 =t(X1-mean(X1))%*%(Y-mean(Y))/sum((X1-mean(X1))^2)
+b0hat1 = mean(Y) - b1hat1*mean(X1)
+fit.y1 = b0hat1 + b1hat1*X1
+mse1 = 1/(n1-2)*sum((Y - fit.y1)^2) #MSE=372203.50491
+
+#hospital bed
+b1hat2 = sum((X2-mean(X2))*(Y-mean(Y)))/sum((X2-mean(X2))^2)
+b0hat2 = mean(Y) - b1hat2*mean(X2)
+fit.y2 = b0hat2 + b1hat2*X2
+mse2 = 1/(n2-2)*sum((Y - fit.y2)^2) #MSE=31091.88354
+
+#total income
+b1hat3 = sum((X3-mean(X3))*(Y-mean(Y)))/sum((X3-mean(X3))^2)
+b0hat3 = mean(Y) - b1hat3*mean(X3)
+fit.y3 = b0hat3 + b1hat3*X3
+mse3 = 1/(n3-2)*sum((Y - fit.y3)^2) #MSE=324539.39367
+
+```
+
+## Projects 1.44
+a.) For each geographic region, regress per capita income in a CDI (Y) against the percentage of individuals in a county having at east a bachelors degree (X). Assume that first-order regression model (1.1) is appropriate for each region. State the estimated regression functions.
+
+For Region 1 (NE), let $Y$ be the per capita income , $X_1$ be percent bachelor's degree: $$\widehat{Y}=9223.8+522.2X_1$$
+
+For Region 2 (NC), let $Y$ be the per capita income , $X_2$ be percent bachelor's degree:$$\widehat{Y}= 13581.4+238.7X_2$$
+
+For Region 3 (S), let $Y$ be the per capita income , $X_3$ be percent bachelor's degree: $$\widehat{Y}= 10529.8+330.6X_3$$
+
+For Region 4 (W), let $Y$ be the per capita income , $X_4$ be percent bachelor's degree:$$\widehat{Y}= 8615.1+440.3X_4$$
+
+```{r}
+
+regions= data1[,17]
+# regions
+# NE
+# regions==1
+NE=data1[regions==1,]
+# head(NE)
+# lm(V15~V12,data=NE)
+# Yhat=9223.8+522.2X
+# NC
+# lm(V15~V12,data=data1[regions==2,]) #Yhat=13581.4+238.7X
+# S
+# lm(V15~V12,data=data1[regions==3,])#Yhat=10529.8+330.6X
+# W
+# lm(V15~V12,data=data1[regions==4,])#Yhat=8615.1+440.3X
+
+```
+
+
+b.) Are the estimated regression functions similar for the four regions? Discuss.
+
+The estimated regression functions are not necessarily similar between the four regions between the slopes and intercepts of each function vary. The ranges of the $B_o$ intercept of all regions vary between the values of 8000 to approximately 13,000. Region 2 (NC) has the largest intercept of 13,581.4 whereas Region 4 has the smallest intercept value with 8615.1. The ranges of the slope varies between 200 to 500 with Region (NE) having the largest slope value of 552.2X and Region 2 (NC) with the smallest slop of 238.7X.   
+
+```{r}
+NE= subset(data1,regions==1)
+Y_NE= NE[,15]
+X_NE= NE[,12]
+n=length(X_NE)
+fitNE=lm(Y_NE~X_NE)
+y_hatNE=fitNE$fitted.values
+SSENE= sum((Y_NE-y_hatNE)^2)
+MSENE= SSENE/(n-2)
+MSENE
+plot(V15~V12,data=data1[regions==1,], xlab="Percentage of People with At Least a  Bachelor's Degree",ylab="CDI ", main = "Fitted Regression Line for Region 1")
+abline(fitNE, col="blue")
+
+
+```
+
+
+```{r}
+NC= subset(data1,regions == 2)
+Y_NC =NC[,15]
+X_NC= NC[,12]
+n= length(X_NC)
+fit_NC=lm(Y_NC~X_NC)
+summary(fit_NC)
+y_hatNC=fit_NC$fitted.values
+SSE_NC= sum((Y_NC-y_hatNC)^2)
+MSE_NC= SSE_NC/(n-2)
+MSE_NC
+
+plot(V15~V12,data=data1[regions==2,], xlab="Percentage of People with At Least a  Bachelor's Degree",ylab="CDI ", main = "Fitted Regression Line for Region 2")
+abline(fit_NC, col="red")
+
+
+
+```
+
+
+
+```{r}
+S= subset(data1,regions == 3)
+Y_S= S[,15]
+X_S= S[,12]
+n= length(X_S)
+fit_S=lm(Y_S~X_S)
+summary(fit_S)
+y_hatS= fit_S$fitted.values
+SSE_S= sum((Y_S-y_hatS)^2)
+MSE_S= SSE_S/(n-2)
+MSE_S
+plot(V15~V12,data=data1[regions==3,], xlab="Percentage of People with At Least a  Bachelor's Degree",ylab="CDI ", main = "Fitted Regression Line for Region 3")
+abline(fit_S, col="pink")
+
+```
+
+
+```{r}
+W= subset(data1,regions == 4)
+Y_W= W[,15]
+X_W= W[,12]
+n= length(X_W)
+fit_W=lm(Y_W~X_W)
+summary(fit_W)
+y_hatW= fit_W$fitted.values
+SSE_W= sum((Y_W-y_hatW)^2)
+MSE_W= SSE_W/(n-2)
+MSE_W
+plot(V15~V12,data=data1[regions==4,], xlab="Percentage of People with At Least a  Bachelor's Degree",ylab="CDI ", main = "Fitted Regression Line for Region 4")
+abline(fit_W, col="yellow")
+
+
+```
+
+
+
+C.) Calculate MSE for each region. Is the variability around the fitted regression line approximately the same for the four regions? Discuss.
+
+MSE for Region 1 (NE): 7,335,008
+
+MSE for Region 2(NC): 4,411,341
+
+MSE for Region 3 (S): 7,474,349
+
+MSE for Region 4 (W):8,214,318
+
+The variability around the fitted regression line vary for the four regions because the MSE values of all the regions vary ranging from the values of about 4,000,000 to 8,000,000. The MSE for Region 2 (NC) has the lowest variability with the MSE of 4,411,341. The MSE for Region 4 (W) has the highest variability of 8,241,318. Since they MSE values of the regions cover a larger range, we can conclude that variability around the fitted regression line are approximately the same for the four regions. 
+
+```{r}
+NE= subset(data1,regions==1)
+Y_NE= NE[,15]
+X_NE= NE[,12]
+n=length(X_NE)
+fitNE=lm(Y_NE~X_NE)
+y_hatNE=fitNE$fitted.values
+SSENE= sum((Y_NE-y_hatNE)^2)
+MSENE= SSENE/(n-2)
+MSENE
+
+NC= subset(data1,regions == 2)
+Y_NC =NC[,15]
+X_NC= NC[,12]
+n= length(X_NC)
+fit_NC=lm(Y_NC~X_NC)
+summary(fit_NC)
+y_hatNC=fit_NC$fitted.values
+SSE_NC= sum((Y_NC-y_hatNC)^2)
+MSE_NC= SSE_NC/(n-2)
+MSE_NC
+
+
+S= subset(data1,regions == 3)
+Y_S= S[,15]
+X_S= S[,12]
+n= length(X_S)
+fit_S=lm(Y_S~X_S)
+summary(fit_S)
+y_hatS= fit_S$fitted.values
+SSE_S= sum((Y_S-y_hatS)^2)
+MSE_S= SSE_S/(n-2)
+MSE_S
+
+
+W= subset(data1,regions == 4)
+Y_W= W[,15]
+X_W= W[,12]
+n= length(X_W)
+fit_W=lm(Y_W~X_W)
+summary(fit_W)
+y_hatW= fit_W$fitted.values
+SSE_W= sum((Y_W-y_hatW)^2)
+MSE_W= SSE_W/(n-2)
+MSE_W
+plot(V15~V12,data=data1[regions==4,], xlab="Percentage of People with At Least a  Bachelor's Degree",ylab="CDI ", main = "Fitted Regression Line for Region 4")
+abline(fit_W, col="yellow")
+
+```
+
+# Part II: Measuring linear associations
+```{r pt2}
+data1 = read.table("/Users/marybangloy/Desktop/STA 108/Project 1/CDI.txt")
+Y = data1[,8] # number of active physicians
+
+totalPop = data1[,5] # total population
+fit1 = lm(Y~totalPop)
+summary(fit1)$r.squared
+
+hospitalBeds = data1[,9] # number of hospital beds
+fit2 = lm(Y~hospitalBeds)
+summary(fit2)$r.squared
+
+personalIncome = data1[,16] # total personal income
+fit3 = lm(Y~personalIncome)
+summary(fit3)$r.squared
+```
+Which predictor variable accounts for the largest reduction in the variability in the number of active physicians?
+
+The number of hospital beds is the predictor variable that accounts for the largest reduction in the variability in the number of active physicians. $R^2$ = `r summary(fit2)$r.squared`. It is the greatest $R^2$ value out of the three: total population, number of hospital beds, and total personal income.
+
+# Part III: Inference about regression parameters
+
+## Project 2.63
+Refer to the CDI data set in Appendix C.2 and Project 1.44. Obtain a separate interval estimate of $\beta_1$ for each region. Use a 90 percent confidence coefficient in each case. Do the regression lines for the different regions appear to have similar slopes?
+```{r}
+cdi_data = read.table("/Users/marybangloy/Desktop/STA 108/Project 1/CDI.txt")
+
+## REGION 1
+regions=cdi_data[,17]
+#regions 
+n1 = dim(subset(cdi_data, V17 == 1))[1]
+
+#regions==2
+NE=cdi_data[regions==1,]
+#NE
+
+fit_r1 = lm(V15~V12, data=NE) 
+#summary(fit_r2)
+
+#Get least square estimates:
+#fit=lm(V15~V12, data=NE)
+b0hat = fit_r1$coefficients[[1]] 
+b1hat = fit_r1$coefficients[[2]]
+
+#MSE
+MSE = summary(fit_r1)$sigma^2
+
+se.b0hat = summary(fit_r1)$coefficients[1,"Std. Error"]
+se.b1hat = summary(fit_r1)$coefficients[2,"Std. Error"]
+
+#Test statistics:
+alpha = 0.1
+p = 1-alpha/2
+t.value = (b1hat-1)/se.b1hat
+critical.value= qt(p, df = n1 - 2)
+#abs(t.value) > critical.value
+#Reject H0 if get TRUE
+
+#confidence interval
+lb.b1hat = b1hat - critical.value*se.b1hat
+ub.b1hat = b1hat + critical.value*se.b1hat
+c(lb.b1hat, ub.b1hat)
+```
+We are 90% confident that the slope of the regression model that relates the individuals in region 1 (NE) with a bachelor's degree and their per capita income will lie between 460.5177 and 583.8000.
+
+```{r}
+## REGION 2
+
+regions=cdi_data[,17]
+#regions 
+n2 = dim(subset(cdi_data, V17 == 2))[1]
+
+#regions==2
+NC=cdi_data[regions==2,]
+#NC
+
+fit_r2 = lm(V15~V12, data=NC) 
+#summary(fit_r2)
+
+#Get least square estimates:
+#fit=lm(V15~V12, data=NE)
+b0hat = fit_r2$coefficients[[1]] 
+b1hat = fit_r2$coefficients[[2]]
+
+#MSE
+MSE = summary(fit_r2)$sigma^2
+
+se.b0hat = summary(fit_r2)$coefficients[1,"Std. Error"]
+se.b1hat = summary(fit_r2)$coefficients[2,"Std. Error"]
+
+#Test statistics:
+alpha = 0.1
+p = 1-alpha/2
+t.value = (b1hat-1)/se.b1hat
+critical.value= qt(p, df = n2 - 2)
+#abs(t.value) > critical.value
+#Reject H0 if get TRUE
+
+#confidence interval
+lb.b1hat = b1hat - critical.value*se.b1hat
+ub.b1hat = b1hat + critical.value*se.b1hat
+c(lb.b1hat, ub.b1hat)
+```
+We are 90% confident that the slope of the regression model that relates the individuals in region 2 (NC) with a bachelor's degree and their per capita income will lie between 193.4858 and 283.8530.
+
+```{r}
+##Region 3
+#regions==3
+r3=cdi_data[regions==3,]
+#r3
+regions=cdi_data[,17]
+#regions 
+n3 = dim(subset(cdi_data, V17 == 3))[1]
+
+#regions==3
+S=cdi_data[regions==3,]
+#S
+
+fit_r3 = lm(V15~V12, data=S) 
+#summary(fit_r3)
+
+#Get least square estimates:
+b0hat = fit_r3$coefficients[[1]] 
+b1hat = fit_r3$coefficients[[2]]
+
+#MSE
+MSE = summary(fit_r3)$sigma^2
+
+se.b0hat = summary(fit_r3)$coefficients[1,"Std. Error"]
+se.b1hat = summary(fit_r3)$coefficients[2,"Std. Error"]
+
+#Test statistics:
+alpha = 0.1
+p = 1-alpha/2
+t.value = (b1hat-1)/se.b1hat
+critical.value= qt(p, df = n3 - 2)
+#abs(t.value) > critical.value
+#Reject H0 if get TRUE
+
+#confidence interval
+lb.b1hat = b1hat - critical.value*se.b1hat
+ub.b1hat = b1hat + critical.value*se.b1hat
+c(lb.b1hat, ub.b1hat)
+```
+We are 90% confident that the slope of the regression model that relates the individuals in region 3 (S) with a bachelor's degree and their per capita income will lie between 285.7076 and 375.5158.
+
+```{r}
+## REGION 4
+
+r4=cdi_data[regions==4,]
+#r4
+regions=cdi_data[,17]
+#regions 
+n4 = dim(subset(cdi_data, V17 == 4))[1]
+
+#regions==4
+W=cdi_data[regions==4,]
+#W
+
+fit_r4 = lm(V15~V12, data=W) 
+#summary(fit_r4)
+
+#Get least square estimates:
+b0hat = fit_r4$coefficients[[1]] 
+b1hat = fit_r4$coefficients[[2]]
+
+#MSE
+MSE = summary(fit_r4)$sigma^2
+
+se.b0hat = summary(fit_r4)$coefficients[1,"Std. Error"]
+se.b1hat = summary(fit_r4)$coefficients[2,"Std. Error"]
+
+#Test statistics:
+alpha = 0.1
+p = 1-alpha/2
+t.value = (b1hat-1)/se.b1hat
+critical.value= qt(p, df = n4 - 2)
+#abs(t.value) > critical.value
+#Reject H0 if get TRUE
+
+#confidence interval
+lb.b1hat = b1hat - critical.value*se.b1hat
+ub.b1hat = b1hat + critical.value*se.b1hat
+c(lb.b1hat, ub.b1hat)
+```
+We are 90% confident that the slope of the regression model that relates the individuals in region 4 (W) with a bachelor's degree and their per capita income will lie between 364.7585 and 515.8729.
+
+The regression lines for the different regions do not appear to have similar slopes because we can see from the regression lines obtained in Part I of the project, each region has a different y-intercept and slope for the model. Each of the slopes per region varies from another slope by around 100, so we can say that the different regions do not appear to have similar slopes. Additionally, the y-intercepts also vary from each other by around 100 as well.
+
+Carry out the analysis of variance (ANOVA) for each regression model and state the results of the F-tests. What do you conclude in each case?
+```{r}
+#ANOVA
+regions=cdi_data[,17]
+#regions 
+
+r1=cdi_data[regions==1,]
+
+data1 = read.table("/Users/marybangloy/Desktop/STA 108/Project 1/CDI.txt")
+Y = r1$V15
+X = r1$V12
+n = length(Y)
+
+fit = lm(Y~X)
+
+y_hat = fit$fitted.values 
+SSTO = sum((Y-mean(Y))^2)
+SSE = sum((Y-y_hat)^2)
+SSR = sum((y_hat-mean(Y))^2)
+MSR = SSR/(1)
+MSE = SSE/(n-2)
+Fstatistic = MSR/MSE
+pvalue = pf(Fstatistic, 1, n-2, lower.tail = F)
+result=data.frame(Source=c("Regression", "Error", "Total"),
+                  Df=c(1, n-2,n-1), SS=c(SSR, SSE, SSTO),
+                  MS=c(MSR, MSE,NA), F_value=c(Fstatistic,NA,NA),
+                  p_value=c(pvalue,NA,NA))
+library(knitr)
+kable(result)
+```
+
+
+```{r}
+#REGION 2
+#regions==2
+r2=cdi_data[regions==2,]
+
+data1 = read.table("/Users/marybangloy/Desktop/STA 108/Project 1/CDI.txt")
+Y = r2$V15
+X = r2$V12
+n = length(Y)
+
+fit = lm(Y~X)
+
+y_hat = fit$fitted.values 
+SSTO = sum((Y-mean(Y))^2)
+SSE = sum((Y-y_hat)^2)
+SSR = sum((y_hat-mean(Y))^2)
+MSR = SSR/(1)
+MSE = SSE/(n-2)
+Fstatistic = MSR/MSE
+pvalue = pf(Fstatistic, 1, n-2, lower.tail = F)
+result=data.frame(Source=c("Regression", "Error", "Total"),
+                  Df=c(1, n-2,n-1), SS=c(SSR, SSE, SSTO),
+                  MS=c(MSR, MSE,NA), F_value=c(Fstatistic,NA,NA),
+                  p_value=c(pvalue,NA,NA))
+library(knitr)
+kable(result)
+```
+
+```{r}
+#REGION 3
+r3=cdi_data[regions==3,]
+
+data1 = read.table("/Users/marybangloy/Desktop/STA 108/Project 1/CDI.txt")
+Y = r3$V15
+X = r3$V12
+n = length(Y)
+
+fit = lm(Y~X)
+
+y_hat = fit$fitted.values 
+SSTO = sum((Y-mean(Y))^2)
+SSE = sum((Y-y_hat)^2)
+SSR = sum((y_hat-mean(Y))^2)
+MSR = SSR/(1)
+MSE = SSE/(n-2)
+Fstatistic = MSR/MSE
+pvalue = pf(Fstatistic, 1, n-2, lower.tail = F)
+result=data.frame(Source=c("Regression", "Error", "Total"),
+                  Df=c(1, n-2,n-1), SS=c(SSR, SSE, SSTO),
+                  MS=c(MSR, MSE,NA), F_value=c(Fstatistic,NA,NA),
+                  p_value=c(pvalue,NA,NA))
+library(knitr)
+kable(result)
+```
+
+
+```{r}
+#REGION 4
+r4=cdi_data[regions==4,]
+
+data1 = read.table("/Users/marybangloy/Desktop/STA 108/Project 1/CDI.txt")
+Y = r4$V15
+X = r4$V12
+n = length(Y)
+
+fit = lm(Y~X)
+
+y_hat = fit$fitted.values 
+SSTO = sum((Y-mean(Y))^2)
+SSE = sum((Y-y_hat)^2)
+SSR = sum((y_hat-mean(Y))^2)
+MSR = SSR/(1)
+MSE = SSE/(n-2)
+Fstatistic = MSR/MSE
+pvalue = pf(Fstatistic, 1, n-2, lower.tail = F)
+result=data.frame(Source=c("Regression", "Error", "Total"),
+                  df=c(1, n-2,n-1), SS=c(SSR, SSE, SSTO),
+                  MS=c(MSR, MSE,NA), F_value=c(Fstatistic,NA,NA),
+                  p_value=c(pvalue,NA,NA))
+library(knitr)
+kable(result)
+```
+
+For Region 1:
+```{r}
+alpha = 0.1
+FCritVal_r1 = qf(1-alpha,1,101) #2.755868, n-2=103-2
+FCritVal_r1
+```
+
+$H_0: \beta_1=0,\: H_A: \beta_1≠0$
+
+Decision rule: We reject $H_0$ at significance level α = .05 because $|F^*|= 197.7527	$ is greater than the critical value = 2.755868. Additionally, the p-value is very close to 0, which is less than $α = 0.1$.
+
+Conclusion: At a significance level of α = .1, we observe that the given coefficient is useful for the regression model and that there is a linear association. There is a significant statistical relationship between per capita income and the percentage of individuals that have at least a bachelors degree in Region 1.
+
+For Region 2:
+```{r}
+alpha = 0.1
+FCritVal_r2 = qf(1-alpha,1,106) #2.753462, n-2=108-2
+FCritVal_r2
+```
+
+$H_0: \beta_1=0,\: H_A: \beta_1≠0$
+
+Decision rule: We reject $H_0$ at significance level α = .05 because $|F^*|= 76.82646	$ is greater than the critical value = 2.753462. Additionally, the p-value is very close to 0, which is less than $α = 0.1$.
+
+Conclusion: At a significance level of α = .1, we observe that the given coefficient is useful for the regression model and that there is a linear association. There is a significant statistical relationship between per capita income and the percentage of individuals that have at least a bachelors degree in Region 2.
+
+For Region 3:
+```{r}
+alpha = 0.1
+FCritVal_r3 = qf(1-alpha,1,150) #2.739275, n-2=152-2
+FCritVal_r3
+```
+
+$H_0: \beta_1=0,\: H_A: \beta_1≠0$
+
+Decision rule: We reject $H_0$ at significance level α = .05 because $|F^*|= 148.491$ is greater than the critical value = 2.739275. Additionally, the p-value is very close to 0, which is less than $α = 0.1$.
+
+Conclusion: At a significance level of α = .1, we observe that the given coefficient is useful for the regression model and that there is a linear association. There is a significant statistical relationship between per capita income and the percentage of individuals that have at least a bachelors degree in Region 3.
+
+For Region 4:
+```{r}
+alpha = 0.1
+FCritVal_r4 = qf(1-alpha,1,75) #2.773642, n-2=77-2
+FCritVal_r4
+```
+
+$H_0: \beta_1=0,\: H_A: \beta_1≠0$
+
+Decision rule: We reject $H_0$ at significance level α = .05 because $|F^*|= 94.19477$ is greater than the critical value = 2.773642. Additionally, the p-value is very close to 0, which is less than $α = 0.1$.
+
+Conclusion: At a significance level of α = .1, we observe that the given coefficient is useful for the regression model and that there is a linear association. There is a significant statistical relationship between per capita income and the percentage of individuals that have at least a bachelors degree in Region 4.
+
+# Part IV: Regression diagnostics
+```{r}
+# Total Population: Residual plot against X
+residualsX1 = fit1$residuals
+plot(x = X1, y = residualsX1, xlab = "Total Population", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+# Total Population: Normal Probability Q-Q Plot
+qqnorm(residualsX1)
+qqline(residualsX1, col= "red")
+```
+
+```{r}
+# Number of Hospital Beds: Residual plot against X
+residualsX2 = fit2$residuals
+plot(x = X2, y = residualsX2, xlab = "Number of Hospital Beds", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+# Number of Hospital Beds: Normal Probability Q-Q Plot
+qqnorm(residualsX2)
+qqline(residualsX2, col= "red")
+```
+
+```{r}
+# Total Personal Income: Residual plot against X
+residualsX3 = fit3$residuals
+plot(x = X3, y = residualsX3, xlab = "Total Personal Income", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+# Total Personal Income: Normal Probability Q-Q Plot
+qqnorm(residualsX3)
+qqline(residualsX3, col= "red")
+```
+The residual plots indicate the presence of outliers. There are two noticeable outliers. Points are clustered towards the left end of the residual plot where total population, number of hospital beds, and total personal income are at lower numbers. The distributions of the error terms are symmetrical, but with heavy tails. There are higher probabilities in the tails than in a normal distribution. Both tails correspond to left-skewed and right-skewed distributions. This is because our data includes more extreme values than we would expect from a normal distribution. The linear regression model (2.1) is not more appropriate in one case than in others. Our fitted regression lines imply linear association between X and Y.
+
+# Part V: Discussion
+
+# Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
