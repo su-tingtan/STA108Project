@@ -1,0 +1,357 @@
+---
+title: "STA 108 Project 2"
+author: "Jennifer Ngo, Su-Ting Tan, Mary Bangloy"
+date: "3/10/2021"
+output: html_document
+---
+
+```{r, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(
+	error = FALSE,
+	message = FALSE,
+	warning = FALSE,
+	echo = FALSE, # hide all R codes!!
+	fig.width=5, fig.height=4,#set figure size
+	fig.align='center',#center plot
+	options(knitr.kable.NA = ''), #do not print NA in knitr table
+	tidy = FALSE #add line breaks in R codes
+)
+```
+
+# Introduction
+The dataset that we will be analyzing in our project is demographic information on 440 selected counties in the United States. In the dataset, each county is coordinated with an identification number that represents a county. In the second line, there are the county names and state abbreviations that correspond to each county. There are a total of 14 variables included in the dataset ranging from total population, number of active physicians, total personal income, and more. The data were recorded between the years of 1990 and 1992. The purpose of this project is to construct multiple linear regression models and see which of these predictor variables are useful in our analysis. For our analysis, we will make various plots, such as a stem-and-leaf plot and scatter plot to see the spread of each predictor variable against the response variable. We will then calculate the partial coefficient of determination $R^2$ for each of the different predictor variables plotted against the response variable, and this explains the percent variation in the outcome variable that is described by the model. Additionally, we will obtain the residuals plots for each of these variables and see how spread the data is. We will expand on this idea by adding all the possible two-factor interactions that might occur in this model. We will calculate the additional coefficients of partial determination to see which pair of predictor variables is the best pair to use in our analysis, given that $X_1$ and $X_2$ is already in the model. We further analyze our hypotheses by doing a F test to find the best pair of predictor variables to use in our model.
+
+# Part 1: Multiple linear regression I
+
+## a.) Prepare a stem-and-leaf plot for each of the predictor variables. What noteworthy information is provided by your plots?
+```{r}
+data = read.table("/Users/marybangloy/Desktop/STA 108/CDI.txt")
+active_phy = data[,8] # Y, number of active physicians
+total_pop = data[,5] # Model 1, X1, total population
+land_area = data[,4] # Model 1, X2, land area
+total_pi = data[,16] # Model 1 and 2, X3, total personal income
+pop_density = total_pop / land_area # Model 2, X1, population density (total population divided by land area)
+pop_older = data[,7] # Model 2, X2, percent of population 65 or older
+```
+
+#### Stem-and-Leaf Plot: Total Population
+```{r}
+stem(total_pop)
+```
+
+#### Stem-and-Leaf Plot: Land Area
+```{r}
+stem(land_area)
+```
+
+#### Stem-and-Leaf Plot: Total Personal Income
+```{r}
+stem(total_pi)
+```
+
+#### Stem-and-Leaf Plot: Population Density
+```{r}
+stem(pop_density)
+```
+
+#### Stem-and-Leaf Plot: Percent of Population 65 or Older
+```{r}
+stem(pop_older)
+```
+
+The stem-and-leaf plots note that the data for total population, land area, total personal income, and land density are skewed to the right. The data for percent of population 65 or older appears to be approximately Normal and slightly right skewed.
+
+## b.) Obtain the scatter plot matrix and the correlation matrix for each proposed model. Summarize the information provided.
+
+#### Model 1
+```{r}
+model1 = data.frame(active_phy, total_pop, land_area, total_pi)
+pairs(model1) # Model 1 scatter plot matrix
+cor(model1) # Model 1 correlation matrix
+```
+
+The scatter plots for number of active physicians (Y) vs total population ($X_1$), active physicians (Y) vs total personal income ($X_3$), and total population ($X_1$) vs total personal income ($X_3$) appear to have a positive slope, indicating a high correlation. According to the correlation matrix, Y and $X_1$, Y and $X_3$, and $X_1$ and $X_3$ are highly correlated with 0.940, 0.948, and 0.987 as their respective coefficients of simple correlation. The rest have no obvious patterns and low correlations. Because $X_1$ and $X_3$ are highly correlated, this creates a multicollinearity problem, making the model unstable.
+
+#### Model 2
+```{r}
+model2 = data.frame(active_phy, pop_density, pop_older, total_pi)
+pairs(model2) # Model 2 scatter plot matrix
+cor(model2) # Model 2 correlation matrix
+```
+
+The scatter plot for active physicians (Y) vs total personal income ($X_3$) appear to have a positive slope, indicating a high correlation. According to the correlation matrix, Y and $X_$3 are highly correlated with a coefficient of simple correlation of 0.948. The rest have no obvious patterns and low correlations.
+
+## c.) For each proposed model, fit the first-order regression model (6.5) with three predictor variables.
+
+$$Y_i = \beta_0 + \beta_1X_{i1} + \beta_2X_{i2} + \beta_3X_{i3} + \epsilon_i$$
+```{r}
+# Model 1
+fit1 = lm(active_phy~total_pop+land_area+total_pi)
+fit1
+```
+
+Model 1: $\hat{Y} = -13.32 + 0.0008366X_1 - 0.06552X_2 + 0.09413X_3$
+
+```{r}
+# Model 2
+fit2 = lm(active_phy~pop_density+pop_older+total_pi)
+fit2
+```
+
+Model 2: $\hat{Y} = -170.57422 + 0.09616X_1 + 6.33984X_2 + 0.12657X_3$
+
+## d.) Calculate $R^2$ for each model. Is one model clearly preferable in terms of this measure?
+
+```{r}
+summary(fit1)$r.squared # Model 1 r-squared
+summary(fit2)$r.squared # Model 2 r-squared
+```
+
+Model 1 $R^2$: 0.9026432; Model 2 $R^2$: 0.9117491; We cannot tell which model is clearly preferable in terms of this measure since the difference between the $R^2$ of Model 2 and Model 1 is about 0.01.
+
+## e.) For each model, obtain the residuals and plot them against $\hat{Y}$, each of the three predictor variables, and each of the two-factor interaction terms. Also prepare a normal probability plot for each of the two fitted models. Interpret your plots and state your findings. Is one model clearly preferable in terms of appropriateness?
+
+```{r}
+# Model 1
+# against the fitted value
+y_hat1 = fit1$fitted.values
+residuals1 = fit1$residuals
+plot(x=y_hat1, y=residuals1, xlab="fitted values", ylab="residuals", main = "Model 1 Residuals against Y-hat")
+abline(h=0, col="red")
+
+# against the predictor variables
+plot(x=total_pop, y=residuals1, xlab="total population", ylab="residuals", main = "Model 1 Residuals against Total Population")
+abline(h=0, col="red")
+
+plot(x=land_area, y=residuals1, xlab="land area", ylab="residuals", main = "Model 1 Residuals against Land Area")
+abline(h=0, col="red")
+
+plot(x=total_pi, y=residuals1, xlab="total personal income", ylab="residuals", main = "Model 1 Residuals against Total Personal Income")
+abline(h=0, col="red")
+```
+
+These residual plots satisfy linearity and indicate the presence of outliers. Residuals are clustered towards the left end of the plots against fitted values, total population, land area, and total personal income. The residual plot against fitted values does not satisfy constant variance.
+
+```{r}
+# against the two-factor interaction terms
+plot(x=total_pop*land_area, y=residuals1, xlab="Total Population & Land Area", ylab="residuals", main = "Model 1 Residuals against X1X2")
+abline(h=0, col="red")
+
+plot(x=land_area*total_pi, y=residuals1, xlab="Land Area & Total Personal Income", ylab="residuals", main = "Model 1 Residuals against X2X3")
+abline(h=0, col="red")
+
+plot(x=total_pop*total_pi, y=residuals1, xlab="Total Population & Total Personal Income", ylab="residuals", main = "Model 1 Residuals against X1X3")
+abline(h=0, col="red")
+```
+
+The residual plot against land area and total personal income ($X_2X_3$) indicates the presence of outliers and is clustered to the left. The residual plot against total population and land area is clustered to the left, but more spread out around the zero line. It seems like we can fit a line with a negative slope in this residual plot, indicating that total population and land area ($X_1X_2$) is important. The residual plot against total population and total personal income ($X_1X_3$) is roughly even around the zero line. The plots for $X_1X_3$ and $X_2X_3$ satisfy linearity.
+
+```{r}
+# normal probability plot
+qqnorm(residuals1)
+qqline(residuals1, col="red")
+```
+
+The Normal probability plot of residuals indicates a symmetrical distribution with heavy tails in Model 1. There are higher probabilities in the tails than in a Normal distribution. Both tails correspond to left-skewed and right-skewed distributions. This is because our data includes more extreme values than we would expect from a Normal distribution.
+
+```{r}
+# Model 2
+# against the fitted value
+y_hat2 = fit2$fitted.values
+residuals2 = fit2$residuals
+plot(x=y_hat2, y=residuals2, xlab="fitted values", ylab="residuals", main = "Model 2 Residuals against Y-hat")
+abline(h=0, col="red")
+
+# against the predictor variables
+plot(x=pop_density, y=residuals2, xlab="population density", ylab="residuals", main = "Model 2 Residuals against Total Population")
+abline(h=0, col="red")
+
+plot(x=pop_older, y=residuals2, xlab="percent of population 65 or older", ylab="residuals", main = "Model 2 Residuals against % of Population 65+")
+abline(h=0, col="red")
+
+plot(x=total_pi, y=residuals2, xlab="total personal income", ylab="residuals", main = "Model 2 Residuals against Total Personal Income")
+abline(h=0, col="red")
+```
+
+These residual plots except for the residuals against the percent of population 65 or older, indicate the presence of outliers. Residuals are clustered towards the left end of these plots, but the residuals against the percent of population 65 or older is more spread out around the zero line. These plots satisfy linearity. The residual plot against the fitted values does not satisfy constant variance.
+
+```{r}
+# against the two-factor interaction terms
+plot(x=pop_density*pop_older, y=residuals2, xlab="Population Density & % of Population 65+", ylab="residuals", main = "Model 2 Residuals against X1X2")
+abline(h=0, col="red")
+
+plot(x=pop_older*total_pi, y=residuals2, xlab="% of Population 65+ & Total Personal Income", ylab="residuals", main = "Model 2 Residuals against X2X3")
+abline(h=0, col="red")
+
+plot(x=pop_density*total_pi, y=residuals2, xlab="Population Density & Total Personal Income", ylab="residuals", main = "Model 2 Residuals against X1X3")
+abline(h=0, col="red")
+```
+
+These residual plots against the two-factor interaction terms indicate the presence of outleirs in Model 2. Residuals are clustered towards the left end of these plots. These plots satisfy linearity, as there are no patterns in the interaction terms.
+
+```{r}
+# normal probability plot
+qqnorm(residuals2)
+qqline(residuals2, col="red")
+```
+
+The Normal probability plot of residuals indicates a symmetrical distribution with heavy tails in Model 2. There are higher probabilities in the tails than in a Normal distribution. Both tails correspond to left-skewed and right-skewed distributions. This is because our data includes more extreme values than we would expect from a Normal distribution.
+
+The one model that is clearly preferable in terms of appropriateness would be Model 2. When looking at the plots, Model 2 has a better performance, as it already includes all important predictors. For Model 1, we would still need to add the interaction term for $X_1X_2$.
+
+## f.) Now expand both models proposed above by adding all possible two-factor interactions. Note that, for a model with $X_1, X_2, X_3$ as the predictors, the two-factor interactions are $X_1X_2, X_1X_3, X_2X_3$. Repeat part d for the two expanded models.
+
+```{r}
+# Model 1 Expanded
+fit1exp = lm(active_phy~total_pop+land_area+total_pi+total_pop*land_area+total_pop*total_pi+land_area*total_pi)
+# Model 2 Expanded
+fit2exp = lm(active_phy~pop_density+pop_older+total_pi+pop_density*pop_older+pop_density*total_pi+pop_older*total_pi)
+
+summary(fit1exp)$r.squared # Model 1 r-squared
+summary(fit2exp)$r.squared # Model 2 r-squared
+```
+
+Model 1 Expanded $R^2$: 0.9063789; Model 2 Expanded $R^2$: 0.9230238; We still cannot tell which model is clearly preferable. The difference between the $R^2$ of Model 2 and Model 1 is about 0.017.
+
+# Part 2: Multiple linear regression II
+
+## a.) For each other of the following variables, calculate the coefficient of partial determination given that $X_1$ and $X_2$ are included in the model: land area($X_2$), percent of population 65 or older ($X_4$), and number of hospital beds ($X_5$)
+
+$$R^2_{Y \: X_3|X_1,X_2} = \frac{SSR(X_3|X_1,X_2)}{SSE(X_1,X2)}  ≈ 0.02882$$
+
+$$R^2_{Y \: X_4|X_1,X_2} = \frac{SSR(X_4|X_1,X_2)}{SSE(X_1,X2)}  ≈ 0.003842$$
+
+$$R^2_{Y \: X_5|X_1,X_2} = \frac{SSR(X_5|X_1,X_2)}{SSE(X_1,X2)}  ≈ 0.5538$$
+
+```{r}
+CDI_data=read.table("/Users/marybangloy/Desktop/STA 108/CDI.txt")
+Y= CDI_data$V8 #number of active physicians 
+X1=CDI_data$V5 #total population
+X2=CDI_data$V16 #total personal income
+X3=CDI_data$V4 #land area
+X4=CDI_data$V7 #percent poulation of 65 or older
+X5=CDI_data$V9 #number of hospital beds
+
+## Rsquared Y3|12
+reduced=lm(Y~X1+X2)
+full=lm(Y~X1+X2+X3)
+library(knitr)
+kable(anova(reduced,full))
+Rsquared=(anova(reduced,full)$'Sum of Sq'[2])/(anova(reduced,full)$'RSS'[1])
+Rsquared
+
+
+#Rsquared Y4|12
+reduced=lm(Y~X1+X2)
+full=lm(Y~X1+X2+X4)
+library(knitr)
+kable(anova(reduced,full))
+Rsquared=(anova(reduced,full)$'Sum of Sq'[2])/(anova(reduced,full)$'RSS'[1])
+Rsquared
+
+
+#Rsquared Y5|12
+reduced=lm(Y~X1+X2)
+full=lm(Y~X1+X2+X5)
+library(knitr)
+kable(anova(reduced,full))
+Rsquared=(anova(reduced,full)$'Sum of Sq'[2])/(anova(reduced,full)$'RSS'[1])
+Rsquared
+
+```
+
+## b.) On the basis of the results in part (a), which of the three additional predctor variables is the best? Is the extra sum of squares associated with the variable larger than those for the other three variables?
+
+Out of the additional predictor variables, $X_5$ (number of hospital beds) is the best because it has the largest the coefficient of partial determination. Yes, the extra sum of squares associated with the variable is larger than those for the other variables.
+
+
+## c.) Using the F test statistic, test whether or no the variable determined to be best in part (b) is helpful in the regression model when $X_1$ and $X_2$ are included in the model; use $\alpha=0.01$. Would the F test staitistics for the other three potential predictor variables be as large as the one here?
+
+The full model is $Y_i=B_0+B_1X_1+B_2X_2+B_5X_5+e_i$
+
+$H_o$: $B_5=0$  $H_a$: $B5 \neq 0$
+
+Decision rule: At $\alpha$=0.01, since the F-statistic 541.1801 is greater than the critical value 6.693358, we reject the $H_o$.
+
+Conclusion: At $\alpha$= 0.01, we can conclude that $X_5$ is helpful in the regression model when $X_1$ and $X_2$ are included in the model.
+
+The F test statistics of other potential predictor variables would not be as large as the one here since their smaller value of coefficient of partial determination suggests that they have smaller SSR values which will cause them to have a smaller F test statistics
+
+
+```{r}
+reduced=lm(Y~X1+X2)
+full= lm(Y~X1+X2+X5)
+X= model.matrix(full)
+head(X)
+n=nrow(X)
+p=ncol(X)
+kable(anova(reduced,full))
+F = anova(reduced,full)$'F'[2]
+F
+alpha = 0.01
+qf(1-alpha, 1, n-p) 
+1-pf(F, 1, n-p) 
+```
+
+## d.) Compute three additional  coefficients of partial determination: $R^2_{Y \: X_3,X_4|X_1,X_2},R^2_{Y \: X_3,X_5|X_1,X_2},R^2_{Y \: X_4,X_5|X_1,X_2}$
+
+
+ $$R^2_{Y \: X_3,X_4|X_1,X_2}= 0.03314181$$
+ 
+ $$R^2_{Y \: X_3,X_5|X_1,X_2}= 0.5558232$$
+ 
+ $$R^2_{Y \: X_4,X_5|X_1,X_2}= 0.5642756$$
+The pair of predictors that is relatively more important than the other pairs is $X_4,X_5|X_1,X_2$ since it has the highest value of coefficients of partial determination. 
+ 
+The full model is $Y_i=B_0+B_1X_1+B_2X_2+B_4X_4+B_5X_5+e_i$
+
+$H_o$: $B_4,B_5=0$  $H_a$: not all $B_k(k=4,5)$ equal zero
+
+Decision rule: At $\alpha$=0.05, since the F-statistic 281.6 is greater than the critical value 4.65, we reject the $H_o$.
+######CHANGE CRITICAL VALUE
+Conclusion: At $\alpha$= 0.05, we can conclude that $X_4$ and $X_5$ is helpful in the regression model when $X_1$ and $X_2$ are included in the model.
+```{r}
+# (X3,X4 | X1,X2)
+reduced=lm(Y~X1+X2)
+full= lm(Y~X1+X2+X3+X4)
+kable(anova(reduced,full))
+Rsquared = (anova(reduced,full)$'Sum of Sq'[2])/(anova(reduced,full)$'RSS'[1])
+Rsquared
+
+# (X3,X5 | X1,X2)
+reduced=lm(Y~X1+X2)
+full= lm(Y~X1+X2+X3+X5)
+kable(anova(reduced,full))
+Rsquared = (anova(reduced,full)$'Sum of Sq'[2])/(anova(reduced,full)$'RSS'[1])
+Rsquared
+
+# (X4,X5 | X1,X2)
+reduced=lm(Y~X1+X2)
+full= lm(Y~X1+X2+X4+X5)
+kable(anova(reduced,full))
+Rsquared = (anova(reduced,full)$'Sum of Sq'[2])/(anova(reduced,full)$'RSS'[1])
+Rsquared
+
+#F test
+reduced=lm(Y~X1+X2)
+full= lm(Y~X1+X2+X4+X5)
+X= model.matrix(full)
+head(X)
+n=nrow(X)
+p=ncol(X)
+kable(anova(reduced,full))
+F = anova(reduced,full)$'F'[2]
+F
+alpha = 0.05
+qf(1-alpha, 2, n-p) 
+1-pf(F, 2, n-p)  
+```
+
+## Part 3: Discussion
+In part 1, we wanted to analyze the effect of the fitted values, predictor variables, and two-factor interaction terms on the different graphs for each model. In our analysis, we included stem-and-leaf plots, scatter plots, residual plots, and Normal probability plots. From the stem-and-leaf plot we can see that most of the predictor variables—total population, land area, total personal income, and land density—are skewed to the right. However, the data for percent of population 65 or older appears to be approximately Normal and slightly right skewed. The scatter plot matrix and correlation matrix helped us note which variables are correlated. One thing that stood out is that $X_1$ and $X_3$ of Model 1 are highly correlated. Specifically, with the residual plots we can see that most have clusters of data to the left side of the graph. Most plots also indicate the presence of outliers. The majority of the plots also satisfied linearity, except for $X_1$$X_2$ in Model 1, which had a negative pattern. Additionally, we can see that the Normal Q-Q plots follow a symmetrical distribution but have heavier tails than what we would expect in Normal distributions. From our residual plots, it seems that Model 2 would be the more appropriate model as it already includes all important predictors. When we found both $R^2$ and expanded $R^2$, we cannot conclude which model is more appropriate, but Model 2 did have slightly better results. To improve these models, we should note the multicollinearity in Model 1. Model 1 has two highly correlated variables, total population ($X_1$) and total personal income ($X_3$). We can drop either $X_1$ or $X_3$, using one of them in the model instead of both. Another way to improve Model 1 is to include the predictor for $X_1$$X_2$, as it is an important predictor. We can also improve by studying outliers. Since Models 1 and 2 have outliers present in the majority of the residual plots, we should further study these points, as they are potentially influential.
+
+In part 2, we will calculate the coefficient of partial determination to make conclusions on which factors affect and contribute to the variation of the data and its importance. The coefficient of partial determination help know know what percent of the variation not explained by $X_1$ (total population) and $X_2$ (total personal income) is explained by $X_3$ (land area), $X_4$ (percent population 65 or older), and $X_5$ (number of hospital beds). The coefficient of partial determination has the highest value of 55.38%. We can conclude that  55.38% of the variation not explained by the total population and total person income is explained by the number of hospital beds. To further confirm whether this will assist in the regression model, we conducted an F test statistic. After running the F-test and comparing it to its respective critical value, we concluded to reject the null hypothesis at 95% confidence. At 95% confidence level, we can conclude that the $X_5$ number of hospital beds is helpful in the regression model when $X_1$ (total pop) and $X_2$ (total personal income) are included. To do further research we wanted to see if a certain pair of predictors will play a role in the regression. The pair of predictors that has the highest coefficient of partial determination is $X_4$ and $X_5$ with 56.42%. We can conclude that 56.42% of the variation not explained by the total population and total person income is explained by the number of hospital beds and percent population 65 or older. It is understandable that the number of hospital beds and percent population of 65 or older have a strong relationship. People who are older tend to be weaker which means they are susceptible to injury and illness. They could potentially go to the hospital more often occupying hospital beds. After conducting a F-test, we were able to conclude that at 99% confidence, we have evidence to say that the total population and total personal income is helpful in the regression model given total pop. and total personal income are included in the model. Some potential problems that could arise is that there are outliers that will affect our analysis. It seems like from all of our plots, there are visible outliers within all of them. Removing outliers could help us focus our attention on certain parts of the data. Something we can do to improve the model is to add more predictors to the model. This doesn’t mean for us to use all the predictors involved in the model, but testing to see which of these predictors are useful. By analyzing more predictors we can see which ones can be useful in our model, and thus improve our model as well. Additionally, if we look at our analysis again, the paired predictor could be a bit better.
+
+# Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
